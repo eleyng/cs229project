@@ -72,7 +72,10 @@ dt = time(2) - time(1);
 LFz = LFz - min(LFz);
 RFz = RFz - min(RFz);
 
-LFz_bool = ceil(LFz - .02); 
+LFz_bool = ceil(LFz - .05); % was 0.2 
+LFz_bool(LFz_bool > 0) = 1; 
+
+
 L_toe_off_idx = find(diff(LFz_bool) == -1);
 
 % work with this for now -- clean up later 
@@ -202,8 +205,8 @@ plot(time(L_toe_off_idx), LFz(L_toe_off_idx), 'rx')
 plot(time(LFz_max_idx), LFz_max, 'ko');
 plot(time(RFz_max_idx), RFz_max, 'go');
 
-plot(time, posaL, 'k--')
-plot(time, posaR, 'g--' )
+%plot(time, posaL, 'k--')
+%plot(time, posaR, 'g--' )
 hold off 
 
 
@@ -236,8 +239,7 @@ if avg==1
     % Task: Averages over the entire feature matrix over all strides
     % needs fixing; not sure if this is a useful option
     features = mean(feature_matrix);
-end
-if avg == 2
+elseif avg == 2
     
     % Task: Averages features per two minutes
     % get size of vector match length of features by ignoring first and
@@ -253,11 +255,13 @@ if avg == 2
     
     % Calculate number of chunks (of two minutes)
     num_chunks = floor( length(time)/n )-1 ;
+
+    fprintf('Num Chunks: %i\n', num_chunks); 
     
     % Get indices of each stride start and end
     time_idx = zeros(num_chunks, 2);
     % Index by absolute time
-    a = 1; b = n;
+    a = n/2; b = n;
     for i=1:num_chunks
        time_idx(i,:)= [a,b];
        a = a + n; b = b + n;
@@ -271,7 +275,7 @@ if avg == 2
         end_idx = time_idx(chunk, 2);   
         
         vec = (stride_idx >= start_idx & stride_idx <= end_idx);
-        index = [find(vec, 1, 'first') , find(vec, 1, 'last')]
+        index = [find(vec, 1, 'first') , find(vec, 1, 'last')]; 
         
         avg_feature_matrix(chunk,:) = mean(feature_matrix(index(1):index(2), :) ) ;
         avg_metabolics(chunk,:) = mean(metabolics(index(1):index(2), :));
@@ -280,7 +284,8 @@ if avg == 2
     end
     features = avg_feature_matrix;
     output = avg_metabolics;
-    
+else
+    disp('sdfsdfsdfsgdgdsdgsdgsdgsdgs')
 end
     
     
