@@ -52,8 +52,6 @@ dt = time(2) - time(1);
 
 
 
-
-
 %% Cutting out first minute of data 
 
 
@@ -193,26 +191,6 @@ for i = 1:num_steps
     
     
 end 
-   %% Some useful code for debuggign if feature extraction is correct 
-
-figure, plot(time, LFz, 'k'), hold on 
-plot(time, RFz, 'g')
-plot(time(L_toe_off_idx), LFz(L_toe_off_idx), 'rx')
-
-plot(time(LFz_max_idx), LFz_max, 'ko');
-plot(time(RFz_max_idx), RFz_max, 'go');
-
-plot(time, posaL, 'k--')
-plot(time, posaR, 'g--' )
-hold off 
-
-
-figure, plot(LFz_max_idx, L_stride_length, 'k'), hold on  
-plot(RFz_max_idx, R_stride_length, 'g')
-hold off 
-
-
-%%
 
 
 % come up with feature vector for every step --
@@ -272,7 +250,6 @@ if avg == 2
         
         vec = (stride_idx >= start_idx & stride_idx <= end_idx);
         index = [find(vec, 1, 'first') , find(vec, 1, 'last')]
-        
         avg_feature_matrix(chunk,:) = mean(feature_matrix(index(1):index(2), :) ) ;
         avg_metabolics(chunk,:) = mean(metabolics(index(1):index(2), :));
         
@@ -285,11 +262,27 @@ end
     
     
 
+   
 
 
 
+%% Some useful code for debuggign if feature extraction is correct 
+
+figure, plot(time, LFz, 'k'), hold on 
+plot(time, RFz, 'g')
+plot(time(L_toe_off_idx), LFz(L_toe_off_idx), 'rx')
+
+plot(time(LFz_max_idx), LFz_max, 'ko');
+plot(time(RFz_max_idx), RFz_max, 'go');
+
+plot(time, posaL, 'k--')
+plot(time, posaR, 'g--' )
+hold off 
 
 
+figure, plot(LFz_max_idx, L_stride_length, 'k'), hold on  
+plot(RFz_max_idx, R_stride_length, 'g')
+hold off 
 
 
 
