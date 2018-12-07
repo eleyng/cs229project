@@ -19,7 +19,7 @@ Pval = 1 - Ptr;
 %Pte = 1 - (Ptr + Pval);
 
 % Constants for neural network architecture
-hiddenLayerSize = 1;
+hiddenLayerSize = 10; %1 for linear regression
 trainFcn = 'trainlm';
 
 data_cpy = inputs;
@@ -97,7 +97,7 @@ end
 % Find overall best model
 [overall_best_sub_mse, overall_best_sub_model] = min(overall_models_mse); %find the best submodel
 best_model = sum(overall_models_tried(1:overall_best_sub_model, :)); % best model
-
+find(best_model == 0) % find the predictors do not contribute
 
 %% CrossValidation with hidden layer size
 % TODO if time permits
