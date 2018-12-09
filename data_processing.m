@@ -71,6 +71,9 @@ hold off
 
 %}
 
+
+% Eley Data 
+
 data_dir_10_07 = '~/229_project_data/PAWN/10_07';         % feed this in as input 
 data_dir_10_09 = '~/229_project_data/PAWN/10_09';         % feed this in as input 
 data_dir_10_19 = '~/229_project_data/PAWN/10_19';         % feed this in as input 
@@ -83,20 +86,39 @@ data_dir_11_04 = '~/229_project_data/PAWN/11_04';         % feed this in as inpu
 [data_10_25, metabolics_10_25] = process_day(data_dir_10_25);  pause(1); drawnow; 
 [data_11_04, metabolics_11_04] = process_day(data_dir_11_04);  pause(1); drawnow; 
 
-data = [data_10_07; data_10_09; data_10_19; data_10_25; data_11_04]; 
-full_metabolics = [metabolics_10_07; metabolics_10_09; metabolics_10_19; metabolics_10_25; metabolics_11_04]; 
+eley_data = [data_10_07; data_10_09; data_10_19; data_10_25; data_11_04]; 
+eley_metabolics = [metabolics_10_07; metabolics_10_09; metabolics_10_19; metabolics_10_25; metabolics_11_04]; 
 
 
+% Michael Data 
+data_dir_10_26 = '~/229_project_data/PBPK/10_26';         % feed this in as input 
+data_dir_10_28 = '~/229_project_data/PBPK/10_28';         % feed this in as input 
+data_dir_11_02 = '~/229_project_data/PBPK/11_02';         % feed this in as input 
+data_dir_11_04 = '~/229_project_data/PBPK/11_04';         % feed this in as input 
+data_dir_11_08 = '~/229_project_data/PBPK/11_08';         % feed this in as input 
+
+[data_10_26, metabolics_10_26] = process_day(data_dir_10_26); pause(1); drawnow; 
+[data_10_28, metabolics_10_28] = process_day(data_dir_10_28); pause(1); drawnow; 
+[data_11_02, metabolics_11_02] = process_day(data_dir_11_02);  pause(1); drawnow; 
+[data_11_04, metabolics_11_04] = process_day(data_dir_11_04);  pause(1); drawnow; 
+[data_11_08, metabolics_11_08] = process_day(data_dir_11_08);  pause(1); drawnow; 
+
+michael_data = [data_10_26; data_10_28; data_11_02; data_11_04; data_11_08]; 
+michael_metabolics = [metabolics_10_26; metabolics_10_28; metabolics_11_02; metabolics_11_04; metabolics_11_08]; 
+
+%data(chunk, :) = [left_step_data, right_step_data, med_step_width, rms_emg, control_params]; 
+% step_data = [Fz_med, peak_df_med, peak_pf_med, step_time_med]; 
+data_labels = {'LFz_peak', 'L_peak_df', 'L_peak_pf', 'L_step_time',...
+               'RFz_peak', 'R_peak_df', 'R_peak_pf', 'R_step_time', 'step_width',...
+               'emg1', 'emg2', 'emg3', 'emg4', 'emg5', 'emg6', 'emg7', 'emg8',...
+               'emg9', 'emg10', 'emg11', 'emg12', 'emg13', 'emg14', 'emg15', 'emg16',...
+               'ctrl1', 'ctrl2', 'ctrl3', 'ctrl4'}; 
 
 
+close all; 
+save('processed_data.mat', 'eley_data', 'eley_metabolics', 'michael_data', 'michael_metabolics', 'data_labels'); 
 
-
-
-
-%fucked_up_idxs = find(full_metabolics < 0.25, 3); 
-%data(fucked_up_idxs, :) = []; 
-%full_metabolics(fucked_up_idxs) = []; 
-
+%{
 
 data_no_emg = data(:, 1:(end-16)); 
 emg_only = data(:, (end-15):end);   % for PCA, woot woot!
@@ -133,7 +155,7 @@ constant_pred_mse = constant_pred_rms^2;
 display(constant_pred_rms); 
 display(constant_pred_mse); 
 
-
+%}
 function [data, normalized_metabolics] = process_day(data_dir)
 
 
@@ -252,9 +274,6 @@ function [data, normalized_metabolics] = process_day(data_dir)
             end 
         end 
 
-
-
-
         if (strcmp(parts{end}, '10_07'))
             for i = 3:38
                 csv_list{end + 1} = sprintf('opt%d.csv', i);
@@ -276,6 +295,62 @@ function [data, normalized_metabolics] = process_day(data_dir)
                 csv_list{end + 1} = sprintf('opt%d.csv', i);
             end 
         end 
+
+
+    elseif strcmp(parent_dir, 'PBPK')
+
+        opti1 = fullfile(data_dir,'mat', 'opt1.mat'); 
+        if (strcmp(parts{end}, '10_26')) ||  (strcmp(parts{end}, '10_28')) ||  (strcmp(parts{end}, '11_02'))  ||  (strcmp(parts{end}, '11_04'))
+            opti1 = fullfile(data_dir,'mat', 'opt1.mat'); 
+            load(opti1); 
+        else    % 11_08
+            opti1 = fullfile(data_dir,'mat', 'opt1.mat'); 
+            opti2 = fullfile(data_dir,'mat', 'opt2.mat'); 
+            combine_opti(opti1, opti2);
+
+            % stupid processing, plz kill me 
+            twos = find(condNo == 2);
+            cn_idx = 1; 
+            while (cn_idx < length(condNo))
+
+                % if cond no not 2 - skip till when it is 
+                while (cn_idx < length(condNo)) && (condNo(cn_idx) ~= 2)
+                    cn_idx = cn_idx + 1; 
+                end 
+
+                % so it equals two or we finished 
+
+                if (cn_idx < length(condNo)) && (condNo(cn_idx) == 2)  
+                    % find how long until it doesnt equal 2
+                    next_idx = cn_idx;
+                    while (condNo(next_idx) == 2)  && (next_idx < length(condNo))
+                        next_idx = next_idx + 1; 
+                    end      
+
+                    two_end_idx = next_idx - 1; 
+
+                    if (two_end_idx - cn_idx) < (1.5 * 60/dt)   % conditions should be 2 minutes 
+                        condNo(cn_idx:two_end_idx) = 1; 
+                    end 
+                    cn_idx = two_end_idx; 
+                end 
+                cn_idx = cn_idx + 1; 
+            end 
+        end 
+
+        if (strcmp(parts{end}, '10_26')) ||  (strcmp(parts{end}, '10_28'))  ||  (strcmp(parts{end}, '11_02'))  ||  (strcmp(parts{end}, '11_04'))
+            for i = 2:37
+                csv_list{end + 1} = sprintf('opt%d.csv', i);
+            end 
+        elseif (strcmp(parts{end}, '11_08'))
+            for i = [2:6, 10:40]       % TODO -- double check because there is opt 0? 
+                csv_list{end + 1} = sprintf('opt%d.csv', i);
+            end 
+        end 
+
+
+
+
 
     end 
 
@@ -329,8 +404,9 @@ function [data, normalized_metabolics] = process_day(data_dir)
     normalized_metabolics = zeros(num_chunks, 1); 
 
     features_per_leg = 4; % for now 
+    num_control = 4; 
     % + 1 for step width
-    num_features = 2 * features_per_leg + 1 + num_emg;   % [Fz_med, peak_df_med, peak_pf_med, step_time_med]; 
+    num_features = 2 * features_per_leg + 1 + num_emg + num_control;   % [Fz_med, peak_df_med, peak_pf_med, step_time_med]; 
     data = zeros(num_chunks, num_features);     
 
     % sanity check
@@ -383,13 +459,29 @@ function [data, normalized_metabolics] = process_day(data_dir)
         if (chunk == num_chunks)
             % for the last, only prcoess the end of it 
             %vicon_chunk = csvread(vicon_file, 6, 1);    % if get issue -- will hard code 
-            vicon_chunk = csvread(vicon_file, 6, 1, [6, 1, 60004, 47]);
-            vicon_rows = size(vicon_chunk, 1); 
-            vicon_chunk(1:ceil(vicon_rows/2), :);
+
+            try
+                vicon_chunk = csvread(vicon_file, 6, 1, [6, 1, 60004, 47]);
+                vicon_rows = size(vicon_chunk, 1); 
+                vicon_chunk(1:ceil(vicon_rows/2), :);
+            catch
+                vicon_chunk = csvread(vicon_file, 6, 1);    % because 11_02 data short for michael 
+                vicon_rows = size(vicon_chunk, 1); 
+                vicon_chunk(1:ceil(vicon_rows/2), :);
+            end 
+
         else
             vicon_chunk = csvread(vicon_file, 6, 1, [6, 1, 30005, 47]);
             vicon_rows = size(vicon_chunk, 1); 
         end 
+
+        % get control params 
+        cmap1_med = median(cmap1(start_idx:end_idx));
+        cmap2_med = median(cmap2(start_idx:end_idx));
+        cmap3_med = median(cmap3(start_idx:end_idx));
+        cmap4_med = median(cmap4(start_idx:end_idx));
+
+        control_params = [cmap1_med, cmap2_med, cmap3_med, cmap4_med]; 
 
         raw_emg = vicon_chunk(:, (end-(num_emg-1)):end); 
         filtered_emg = emg_filter(raw_emg); 
@@ -447,7 +539,7 @@ function [data, normalized_metabolics] = process_day(data_dir)
             %display(med_step_width)
 
             normalized_metabolics(chunk) = mean(normalized_cost(start_idx:end_idx)); 
-            data(chunk, :) = [left_step_data, right_step_data, med_step_width, rms_emg]; 
+            data(chunk, :) = [left_step_data, right_step_data, med_step_width, rms_emg, control_params]; 
         end     
 
 
