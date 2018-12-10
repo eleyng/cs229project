@@ -3,7 +3,88 @@
 
 
 close all; clear all; clc; 
+
+
+
+
+%%----------------------- K-Fold Plots -----------------------
+load('k_fold_data.mat'); 
+
+
+ylims = [2, 20] * 1e-3; 
+
+% All features 
+figure, hold on 
+plot(michael_fits.mse_list_all, 'bo-', 'DisplayName', 'S1 All Features');
+plot([1, length(michael_fits.mse_list_all)], min(michael_fits.mse_lr_all) * ones(1, 2), 'b--', 'DisplayName', 'S1 Linear Regression')
+plot(eley_fits.mse_list_all, 'ro-', 'DisplayName', 'S2 All Features');
+plot([1, length(eley_fits.mse_list_all)], min(eley_fits.mse_lr_all) * ones(1, 2), 'r--', 'DisplayName', 'S2 Linear Regression')
+legend show
+xlabel('Number of Neurons');
+ylabel('MSE')
+ylim(ylims);
+hold off 
+print('cv_all_features', '-dpng', '-r300'); 
+
+% No Control
+figure, hold on 
+plot(michael_fits.mse_list_nc, 'bo-', 'DisplayName', 'S1 Step + EMG Data');
+plot([1, length(michael_fits.mse_list_nc)], min(michael_fits.mse_lr_nc) * ones(1, 2), 'b--', 'DisplayName', 'S1 Linear Regression')
+plot(eley_fits.mse_list_nc, 'ro-', 'DisplayName', 'S2 Step + EMG Data');
+plot([1, length(eley_fits.mse_list_nc)], min(eley_fits.mse_lr_nc) * ones(1, 2), 'r--', 'DisplayName', 'S2 Linear Regression')
+legend show
+xlabel('Number of Neurons');
+ylabel('MSE')
+ylim(ylims);
+hold off 
+print('cv_no_control', '-dpng', '-r300'); 
+
+
+% Step Only
+figure, hold on 
+plot(michael_fits.mse_list_so, 'bo-', 'DisplayName', 'S1 Step Only');
+plot([1, length(michael_fits.mse_list_so)], min(michael_fits.mse_lr_so) * ones(1, 2), 'b--', 'DisplayName', 'S1 Linear Regression')
+plot(eley_fits.mse_list_so, 'ro-', 'DisplayName', 'S2 Step Only');
+plot([1, length(eley_fits.mse_list_so)], min(eley_fits.mse_lr_so) * ones(1, 2), 'r--', 'DisplayName', 'S2 Linear Regression')
+legend show
+xlabel('Number of Neurons');
+ylabel('MSE')
+ylim(ylims);
+hold off 
+print('cv_step_only', '-dpng', '-r300'); 
+
+% Emg Only 
+figure, hold on 
+plot(michael_fits.mse_list_emg, 'bo-', 'DisplayName', 'S1 EMG Only');
+plot([1, length(michael_fits.mse_list_emg)], min(michael_fits.mse_lr_emg) * ones(1, 2), 'b--', 'DisplayName', 'S1 Linear Regression')
+plot(eley_fits.mse_list_emg, 'ro-', 'DisplayName', 'S2 EMG Only');
+plot([1, length(eley_fits.mse_list_emg)], min(eley_fits.mse_lr_emg) * ones(1, 2), 'r--', 'DisplayName', 'S2 Linear Regression')
+legend show
+xlabel('Number of Neurons');
+ylabel('MSE')
+ylim(ylims);
+hold off 
+print('cv_emg_only', '-dpng', '-r300'); 
+
+%    set(0, 'currentfigure', fig); hold on
+ %   plot(mse_list_all, [col, 'x-'], 'DisplayName', 'All Parameters');
+  %  plot(mse_list_nc, [col, 'o-'], 'DisplayName', 'Step + EMG');
+  %  plot(mse_list_so, [col, 'd-'], 'DisplayName', 'Step Data Only');
+   % plot(mse_list_emg, [col, 's-'], 'DisplayName', 'EMG Only');
+    %plot([1, length(mse_list_all)], min(kfold_lr_mse) * ones(1, 2), [col, '--'], 'DisplayName', 'Linear Regression')
+    %hold off  
+%set(0, 'currentfigure', fig); legend(show); 
+
+
+
+
+
+
+
+
 load('processed_data.mat'); 
+eley_unit_var = data_scaling(eley_data);
+michael_unit_var = data_scaling(michael_data); 
 
 
 
@@ -13,9 +94,6 @@ load('processed_data.mat');
 
 
 %% Make Data Zero Mean and Unit Variance 
-
-eley_unit_var = data_scaling(eley_data);
-michael_unit_var = data_scaling(michael_data); 
 
 
 
@@ -29,102 +107,6 @@ michael_unit_var = data_scaling(michael_data);
 
 
 
-K = 5;
-
-fig = figure; 
-
-
-for person = 1:2
-
-    if (person == 1)
-        data_orig = michael_unit_var;
-        metabolics_orig = michael_metabolics; 
-        col = 'b'; 
-    else
-        bad_idx = find(eley_metabolics < 0); 
-        eley_unit_var(bad_idx, :) = []; 
-        eley_metabolics(bad_idx) = [];
-        data_orig = eley_unit_var;
-        metabolics_orig = eley_metabolics;
-        col = 'r'; 
-    end 
-
-
-
-    np = length(data_orig); 
-    perm = randperm(np); 
-    data = data_orig(perm, :);     % randomly swap rows 
-    metabolics = metabolics_orig(perm); 
-
-
-
-
-    %% ----------------------- Linar Regression --------------------------
-
-
-    % Bias term will already be added 
-
-    Lambda = logspace(-5,-1,25);
-    Mdl = fitrlinear(data', metabolics, 'ObservationsIn', 'columns',...
-                                 'KFold', K, 'Lambda', Lambda, 'Learner', 'leastsquares', 'Regularization', 'lasso');   % because we took transpose for speed 
-    kfold_lr_mse = kfoldLoss(Mdl);
-    [best_lambda, idx] = min(kfold_lr_mse); 
-    % MdlFinal = selectModels(Mdl, idx); 
-
-    lin_reg_pred_all = kfoldPredict(Mdl); 
-    best_pred = lin_reg_pred_all(:, idx); 
-
-    correlation_coeff = corr2(best_pred, metabolics);
-    r_sqr_lr = power(correlation_coeff,2);
-    R_lr = sqrt(r_sqr_lr); 
-    display(R_lr); 
-
-    %X = X'; 
-    %CVMdl = fitrlinear(X,Y,'ObservationsIn','columns','KFold',5,'Lambda',Lambda,...
-    %    'Learner','leastsquares','Solver','sparsa','Regularization','lasso');
-
-    %numCLModels = numel(CVMdl.Trained)
-
-    % loglog(Lambda, kfold_lr_mse)
-w
-
-    %% ----------------- Network cross validation ---------------------------------------
-
-
-    % come up with index lists for K-fold sets 
-    cv_sets = cell(K, 1);
-    set_size = floor(np/K); 
-    for i = 1:(K - 1)
-        idx1 = set_size * (i - 1) + 1;
-        idx2 = idx1 + set_size - 1;
-        cv_sets{i} = idx1:idx2; 
-    end 
-    cv_sets{K} = (idx2 + 1):length(data); 
-    full_indices = 1:length(data); 
-
-
-
-    
-    data_no_control = data(:, 1:(end-4));
-    data_step_only = data_no_control(:, 1:(end - 16)); 
-    data_emg_only = data_no_control(:, (end - 15):end);
-
-    [mse_list_all] = nn_kfold_br(data, metabolics, cv_sets);
-    [mse_list_nc] = nn_kfold_br(data_no_control, metabolics, cv_sets);
-    [mse_list_so] = nn_kfold_br(data_step_only, metabolics, cv_sets);
-    [mse_list_emg] = nn_kfold_br(data_emg_only, metabolics, cv_sets);
-
-    set(0, 'currentfigure', fig); hold on
-    plot(mse_list_all, [col, 'x-'], 'DisplayName', 'All Parameters');
-    plot(mse_list_nc, [col, 'o-'], 'DisplayName', 'Step + EMG');
-    plot(mse_list_so, [col, 'd-'], 'DisplayName', 'Step Data Only');
-    plot(mse_list_emg, [col, 's-'], 'DisplayName', 'EMG Only');
-    plot([1, length(mse_list_all)], min(kfold_lr_mse) * ones(1, 2), [col, '--'], 'DisplayName', 'Linear Regression')
-    hold off  
-
-end 
-
-set(0, 'currentfigure', fig); legend(show); 
 % lr_model = CVMdl.Trained
 
 %theta_best = 
@@ -221,57 +203,3 @@ display(constant_pred_mse);
 
 
 % 
-
-
-function [neuron_mse_list] = nn_kfold_br(data, metabolics, cv_sets)
-
-    K = length(cv_sets); 
-    full_indices = 1:length(metabolics);
-
-    max_neurons = 14; 
-    neuron_mse_list = zeros(1, max_neurons); 
-
-    data_try = data';
-    targets = metabolics';
-
-    for n = 1:max_neurons
-        hiddenLayerSize = n; 
-        cv_mse = zeros(1, K); 
-        fprintf('K-fold trying %d neuron(s):', n); 
-        for i = 1:K     % K-fold 
-
-            net = feedforwardnet(hiddenLayerSize, 'trainbr');    % bayesian regulaurization 
-
-            trainInd = setdiff(full_indices, cv_sets{i});
-            testInd = cv_sets{i}; 
-
-
-
-            % Set up Division of Data for Training, Validation, Testing
-            net.divideFcn = 'divideind'; 
-            net.divideParam.trainInd = trainInd;
-            net.divideParam.testInd = testInd;
-            %net.divideParam.testRatio = testRatio;
-
-            net.trainParam.epochs = 500; 
-            net.trainParam.goal = 0.5e-5;     % maybe even high because met is noisey 
-
-            % Train the Network
-            net.trainParam.showWindow = false;
-            [trained_net,tr] = train(net,data_try,targets);
-
-            % Test the Network
-            outputs = trained_net(data_try);
-            errors = gsubtract(outputs,targets);
-            performance = perform(trained_net,targets,outputs); %MSE test
-
-            %avg_mse(trial) = performance;
-            cv_mse(i) = performance;
-        end 
-
-        neuron_mse_list(n) = mean(cv_mse); 
-        fprintf(' Mean mse: %0.5f\n', neuron_mse_list(n)); 
-    end 
-
-
-end 
