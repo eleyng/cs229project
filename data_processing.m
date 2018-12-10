@@ -347,11 +347,6 @@ function [data, normalized_metabolics] = process_day(data_dir)
                 csv_list{end + 1} = sprintf('opt%d.csv', i);
             end 
         end 
-
-
-
-
-
     end 
 
     
