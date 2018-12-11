@@ -77,13 +77,13 @@ print('cv_emg_only', '-dpng', '-r300');
 
 
 
-
+%%
 
 
 
 
 load('processed_data.mat'); 
-eley_unit_var = data_scaling(eley_data);
+eley_unit_var = data_scaling(michael_data);
 michael_unit_var = data_scaling(michael_data); 
 
 
@@ -125,8 +125,8 @@ michael_unit_var = data_scaling(michael_data);
 
 
 % Eley Data 
-num_pcs_all = 8;
-num_pcs_nc = 8;
+num_pcs_all = 25;
+num_pcs_nc = 25;
 
 eley_no_controls = eley_unit_var(:, 1:(end - 4));
 eley_emg_only = eley_unit_var(:, 10:25); 
@@ -145,7 +145,48 @@ pca_e_nc = eley_no_controls * U_e_nc;
 [coeff_e_emg, score_e_emg, latent_e_emg, tsquared_e_emg, explained_e_emg, mu_e_emg] = pca(eley_emg_only);
 [coeff_e_so, score_e_so, latent_e_so, tsquared_e_so, explained_e_so, mu_e_so] = pca(eley_step_only);
 
+data = pca_e_nc;
+metabolics = data_scaling(michael_metabolics);
 
+inputs = data';
+targets = metabolics';
+
+[m, n] = size(inputs); % m samples, n predictors
+numCVtrials = 5; % number of trials for cross validation
+trainRatio = 70 / 100;
+valRatio = 0 / 100;
+testRatio = 1 - (trainRatio + valRatio);
+
+% Parameters for neural network architecture
+hiddenLayerSize = 5; %1 for linear regression
+trainFcn = 'trainbr';
+
+numTrials = 5;
+
+for idx=1:numTrials
+
+    net = feedforwardnet(hiddenLayerSize, trainFcn);
+
+    % Set up Division of Data for Training, Validation, Testing
+    net.divideParam.trainRatio = trainRatio;
+    net.divideParam.testRatio = testRatio;
+
+    % Train the Network
+    net.trainParam.showWindow = false;
+    [net,~] = train(net,inputs,targets);
+
+    % Test the Network
+    outputs = net(inputs);
+    %errors = gsubtract(outputs,targets);
+    performance = perform(net,targets,outputs); %MSE test
+
+    %avg_mse(trial) = performance;
+    mean_mse_lst(idx) = performance
+    
+end
+
+mean_mse = mean(mean_mse_lst)
+%%
 
 figure, hold all
 plot(cumsum(explained_e_all), 'DisplayName', 'All Features')
