@@ -125,21 +125,21 @@ michael_unit_var = data_scaling(michael_data);
 
 
 % Eley Data 
-num_pcs_all = 25;
-num_pcs_nc = 25;
+%num_pcs_all = 25;
+%num_pcs_nc = 25;
 
 eley_no_controls = eley_unit_var(:, 1:(end - 4));
 eley_emg_only = eley_unit_var(:, 10:25); 
 eley_step_only = eley_unit_var(:, 1:9); 
 
 % All data 
-[coeff_e_all, score_e_all, latent_e_all, tsquared_e_all, explained_e_all, mu_e_all] = pca(eley_unit_var);
-U_e_all = coeff_e_all(:, 1:num_pcs_all);
-pca_e_all = eley_unit_var * U_e_all; 
+[coeff_e_all, score_e_all, latent_e_all, tsquared_e_all, explained_e_all, mu_e_all] = pca(eley_unit_var, 'NumComponents', 23);
+%U_e_all = coeff_e_all(:, 1:num_pcs_all);
+pca_e_all = coeff_e_all * score_e_all'
 
 [coeff_e_nc, score_e_nc, latent_e_nc, tsquared_e_nc, explained_e_nc, mu_e_no] = pca(eley_no_controls);
-U_e_nc = coeff_e_nc(:, 1:num_pcs_nc);
-pca_e_nc = eley_no_controls * U_e_nc; 
+%U_e_nc = coeff_e_nc(:, 1:num_pcs_nc);
+pca_e_nc = coeff_e_nc * score_e_nc'; 
 
 
 [coeff_e_emg, score_e_emg, latent_e_emg, tsquared_e_emg, explained_e_emg, mu_e_emg] = pca(eley_emg_only);
@@ -153,15 +153,18 @@ targets = metabolics';
 
 [m, n] = size(inputs); % m samples, n predictors
 numCVtrials = 5; % number of trials for cross validation
-trainRatio = 70 / 100;
+trainRatio = 65 / 100;
 valRatio = 0 / 100;
 testRatio = 1 - (trainRatio + valRatio);
 
 % Parameters for neural network architecture
-hiddenLayerSize = 5; %1 for linear regression
+hiddenLayerSize = 4; %1 for linear regression
 trainFcn = 'trainbr';
 
-numTrials = 5;
+
+%% WRONG METHOD: IGNORE
+% Cannot make test and train PCA because those will be different PCs
+numTrials = 100;
 
 for idx=1:numTrials
 
@@ -181,7 +184,7 @@ for idx=1:numTrials
     performance = perform(net,targets,outputs); %MSE test
 
     %avg_mse(trial) = performance;
-    mean_mse_lst(idx) = performance
+    mean_mse_lst(idx) = performance;
     
 end
 
