@@ -1,6 +1,16 @@
-# Predicting Metabolic Cost using data collected during Human-in-the-Loop Optimization
-Autumn 2018 C229 Project
-Eley Ng and Erez Krimsky
+# Predicting Metabolic Cost During Human-in-the-Loop Optimization
+## Eley Ng and Erez Krimsky
+Autumn 2018, CS 229 Project
+
+## Description
+
+Human-in-the-Loop Optimization (HILO) is a technique using assistive robotic
+devices to augment human walking performance to overcome
+this challenge. A common metric used to determine human
+performance is metabolic cost, which is the amount of energy
+used by the human to perform a certain task. We are interested in predicting metabolic
+cost using human walking data collected during human-in-theloop
+optimization experiments.
 
 To run, simply load all .mat files and run the MATLAB scripts.
 
